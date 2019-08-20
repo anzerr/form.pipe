@@ -27,5 +27,11 @@ class FormPipe extends Transform {
 
 }
 
-module.exports = FormPipe;
-module.exports.default = FormPipe;
+module.exports = {
+	FormPipe: FormPipe,
+	Parser: Parser,
+	parse: (data) => {
+		let p = new Parser();
+		return p.push(data).process();
+	}
+};
