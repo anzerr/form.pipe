@@ -1,11 +1,11 @@
 
-const {Readable} = require('stream');
+const {PassThrough} = require('stream');
 
 class File {
 
 	constructor(header) {
 		this.header = header;
-		this.stream = new Readable();
+		this.stream = new PassThrough();
 		this.name = this.header['content-disposition'].match(/name="([-_\.a-zA-Z0-9]+)"/);
 		if (this.name) {
 			this.name = this.name[1];

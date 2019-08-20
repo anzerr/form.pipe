@@ -84,12 +84,20 @@ class Parser {
 		}
 		if (this.last) {
 			this.last[1].push(this._stack.data.slice(this.last[0], i));
+			this.last[0] = this._stack.data.length - i;
 		}
+		this._stack.data = this._stack.data.slice(i, this._stack.data.length);
 		return out;
 	}
 
 	push(chunk) {
-		this._stack.data = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+		if (this._stack.data.length === 0) {
+			this._stack.data = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+		} else {
+			this._stack.data = Buffer.concat([this._stack.data, Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)]);
+		}
+		let data = this._stack.data;
+		this._stack.data = data.slice(Math.max(0, data.length - this.max), data.length);
 		return this;
 	}
 

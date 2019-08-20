@@ -4,13 +4,16 @@ const {Transform} = require('stream'),
 
 class FormPipe extends Transform {
 
-	constructor() {
-		super({objectMode: true});
-		this.parser = new Parser();
+	constructor(o) {
+		super({readableObjectMode: true});
+		this.parser = new Parser(o);
 	}
 
 	_transform(chunk, encoding, callback) {
-		let o = this.parser.push(chunk).process();
+		if (chunk) {
+			this.parser.push(chunk);
+		}
+		let o = this.parser.process();
 
 		for (let i in o) {
 			((file) => {
@@ -22,6 +25,7 @@ class FormPipe extends Transform {
 				});
 			})(o[i]);
 		}
+
 		callback();
 	}
 
