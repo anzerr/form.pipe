@@ -17,14 +17,14 @@
 	},
 	"repository": {
 		"type": "git",
-		"url": ""
+		"url": "git@github.com:anzerr/form.pipe.git"
 	},
 	"engines": {
 		"node": ">= 0.10.0"
 	},
 	"types": "index.d.ts",
 	"bugs": {
-		"url": "https://github.com/undefined/issues"
+		"url": "https://github.com/anzerr/form.pipe/issues"
 	},
-	"homepage": "https://github.com/undefined#readme"
+	"homepage": "https://github.com/anzerr/form.pipe#readme"
 }
