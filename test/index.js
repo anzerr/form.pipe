@@ -70,7 +70,7 @@ let testFile = (files) => {
 				const fileInfo = path.parse(file);
 				const form = new Form({
 					start: Buffer.from([
-						`------${key}`,
+						`${n !== 0 ? '\n' : ''}------${key}`,
 						`Content-Disposition: form-data; name="bfile"; filename="${fileInfo.base}"`,
 						`Content-Type: ${mime.lookup(fileInfo.ext)}`
 					].join('\n') + '\n'),

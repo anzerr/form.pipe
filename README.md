@@ -1,5 +1,9 @@
 
 ### `Intro`
+![GitHub Actions status | linter](https://github.com/anzerr/form.pipe/workflows/linter/badge.svg)
+![GitHub Actions status | publish](https://github.com/anzerr/form.pipe/workflows/publish/badge.svg)
+![GitHub Actions status | test](https://github.com/anzerr/form.pipe/workflows/test/badge.svg)
+
 Parse stream of multipart into sub streams per part
 
 #### `Install`

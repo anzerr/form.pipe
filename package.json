@@ -4,6 +4,7 @@
 	"description": "",
 	"main": "index.js",
 	"scripts": {
+		"linter": "eslint src/**",
 		"test": "node test/index.js"
 	},
 	"keywords": [],
