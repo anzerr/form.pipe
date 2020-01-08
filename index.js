@@ -10,22 +10,32 @@ class FormPipe extends Transform {
 	}
 
 	_transform(chunk, encoding, callback) {
-		if (chunk) {
-			this.parser.push(chunk);
+		try {
+			if (chunk) {
+				this.parser.push(chunk);
+			}
+			let o = this.parser.process();
+	
+			for (let i in o) {
+				((file) => {
+					this.push({
+						name: file.name,
+						filename: file.filename,
+						header: file.header,
+						stream: file.stream
+					});
+				})(o[i]);
+			}
+	
+			callback(null);
+		} catch(err) {
+			callback(err);
 		}
-		let o = this.parser.process();
+		
+	}
 
-		for (let i in o) {
-			((file) => {
-				this.push({
-					name: file.name,
-					filename: file.filename,
-					header: file.header,
-					stream: file.stream
-				});
-			})(o[i]);
-		}
-
+	_flush(callback) {
+		this.parser = null;
 		callback();
 	}
 

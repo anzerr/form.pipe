@@ -10,6 +10,8 @@
 	"author": "anzerr",
 	"license": "MIT",
 	"devDependencies": {
+		"mime.util": "git+https://git@github.com/anzerr/mime.util.git",
+		"fs.hash": "git+https://git@github.com/anzerr/fs.hash.git",
 		"eslint-config-basic": "git+https://git@github.com/anzerr/eslintrc.git"
 	},
 	"eslintConfig": {

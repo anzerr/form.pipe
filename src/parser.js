@@ -22,7 +22,7 @@ class Parser {
 		while (i < 0xff && this._stack.data[x + i] !== 10) {
 			i++;
 		}
-		return this._stack.data.slice(x, x + i);
+		return this._stack.data.slice(x, x + (i - 1));
 	}
 
 	isBreak(x) {
@@ -58,26 +58,48 @@ class Parser {
 		return [i + offset, out];
 	}
 
+	isKey(part, size = 0) {
+		if (this.last && this.last[2] && part.length <= (this.last[2].length + size)) {
+			let i = 0;
+			for (i = 0; i < this.last[2].length; i++) {
+				if (part[i] !== this.last[2][i]) {
+					return 0;
+				}
+			}
+			return i;
+		}
+		return !this.last ? 1 : 0;
+	}
+
+	isEnd(part) {
+		let i = this.isKey(part, 2);
+		if (this.last && i) {
+			if (part[i + 1] === 45 && part[i + 1] === 45) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	process() {
 		let i = 0, out = [];
 		while (i < this._stack.data.length) {
 			let part = this.start(i);
-			if (part && part[part.length - 2] === 45 && part[part.length - 3] === 45) {
-				if (this.last) {
-					this.last[1].push(this._stack.data.slice(this.last[0], i));
-					this.last[1].push(null);
-					this.last = null;
-				}
+			if (part && this.last && this.isEnd(part)) {
+				this.last[1].push(this._stack.data.slice(this.last[0], i - this.isBreak(i - 2)));
+				this.last[1].push(null);
+				this.last = null;
+				i += part.length;
 				break;
 			}
-			if (part) {
+			if (part && this.isKey(part)) {
 				let head = this.getHead(i + part.length);
 				if (this.last) {
-					this.last[1].push(this._stack.data.slice(this.last[0], i));
+					this.last[1].push(this._stack.data.slice(this.last[0], i - this.isBreak(i - 2)));
 					this.last[1].push(null);
 				}
 				i += head[0] + part.length;
-				this.last = [i, new File(head[1])];
+				this.last = [i, new File(part, head[1]), part];
 				out.push(this.last[1]);
 			}
 			i++;
