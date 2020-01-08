@@ -28,7 +28,7 @@ const toHash = () => {
 const random = () => Math.random().toString(36).substring(2);
 
 const toFile = () => {
-	return  new Transform({
+	return new Transform({
 		objectMode: true,
 		transform: (file, encoding, callback) => {
 			try {
@@ -44,13 +44,14 @@ const toFile = () => {
 			}
 		}
 	});
-}
+};
 
 const run = (stream) => {
 	return new Promise((resolve) => {
 		let out = [];
 		stream.pipe(new FormPipe()).pipe(toHash()).on('data', (res) => {
-			if (res !== 'cb8ab9d48f171af83541e5351dcbde7b287e415fcfe9bbf2a31ac04d163c41ab' && res !== '2804e84f2df208a6b9f70603149d87623ed5ac2125d3ef1267db807927f08345') {
+			console.log(res);
+			if (res !== '649a105b013e25921fd83083c747141a5324bd6fba3c6297f6edf402527248a3' && res !== 'ea18d16695e8c5a9a1cd63c34a483cadf6bfc27bcd969b1a77e93b12022e60df') {
 				throw Error(`not valid ${res}`);
 			}
 			out.push(res);
@@ -83,13 +84,13 @@ let testFile = (files) => {
 						.on('close', () => {
 							resolve();
 						});
-				})
+				});
 			}).then(() => {
 				return hash(file).then((h) => {
 					console.log('input', file, h);
 					find[h] = false;
-				})
-			})
+				});
+			});
 		})(files[i], Number(i));
 	}
 	return p.then(() => {
@@ -102,8 +103,8 @@ let testFile = (files) => {
 			});
 			fs.createReadStream('out.tmp').pipe(form).pipe(fs.createWriteStream('out1.tmp')).on('finish', () => {
 				resolve();
-			})
-		})
+			});
+		});
 	}).then(() => {
 		let wait = [];
 		return new Promise((resolve) => {
@@ -127,12 +128,12 @@ let testFile = (files) => {
 			for (let i in find) {
 				assert.equal(find[i], true);
 			}
-		})
+		});
 	});
-}
+};
 
-testFile(['./index.js', './index.js'])
-/*
+testFile(['./index.js', './index.js']);
+
 Promise.all([
 	run(fs.createReadStream('./test/out.dump')),
 	run(fs.createReadStream('./test/out.dump')),
@@ -147,7 +148,7 @@ Promise.all([
 		for (let i = 0; i < 10; i++) {
 			wait.push(new Promise((resolve) => {
 				let a = http.request({method: 'POST', hostname: '127.0.0.1', port: 1358}, (res) => {
-					res.on('data', (res) => {
+					res.on('data', () => {
 						// console.log('data', res.toString());
 					}).on('end', () => {
 						resolve();
@@ -161,4 +162,4 @@ Promise.all([
 			server.close();
 		});
 	});
-});*/
+});

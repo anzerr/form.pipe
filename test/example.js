@@ -1,3 +1,4 @@
+
 const http = require('http'),
 	fs = require('fs'),
 	path = require('path'),
@@ -7,7 +8,7 @@ const http = require('http'),
 const random = () => Math.random().toString(36).substring(2);
 
 const toFile = () => {
-	return  new Transform({
+	return new Transform({
 		objectMode: true,
 		transform: (file, encoding, callback) => {
 			try {
@@ -23,11 +24,12 @@ const toFile = () => {
 			}
 		}
 	});
-}
+};
 
 http.createServer((req, res) => {
 	console.log('req');
-	/*req.pipe(fs.createWriteStream('test.dump')).on('finish', () => {
+
+	/* req.pipe(fs.createWriteStream('test.dump')).on('finish', () => {
 		res.end('cat');
 	});*/
 	req.pipe(new FormPipe()).pipe(toFile()).on('finish', () => {

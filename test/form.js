@@ -1,5 +1,5 @@
 
-const {Transform, PassThrough} = require('stream');
+const {Transform} = require('stream');
 
 class Pad extends Transform {
 
@@ -11,7 +11,7 @@ class Pad extends Transform {
 	_transform(res, encoding, callback) {
 		callback(null, this.config.start ? Buffer.concat([this.config.start, res]) : res);
 		this.config.start = null;
-	}  
+	}
 
 	_flush(callback) {
 		this.push(this.config.end);
