@@ -15,7 +15,7 @@ class FormPipe extends Transform {
 				this.parser.push(chunk);
 			}
 			let o = this.parser.process();
-	
+
 			for (let i in o) {
 				((file) => {
 					this.push({
@@ -26,12 +26,11 @@ class FormPipe extends Transform {
 					});
 				})(o[i]);
 			}
-	
+
 			callback(null);
 		} catch(err) {
 			callback(err);
 		}
-		
 	}
 
 	_flush(callback) {
