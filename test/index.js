@@ -75,7 +75,6 @@ let testFile = (files) => {
 					`Content-Disposition: form-data; name="bfile"; filename="${fileInfo.base}"`,
 					`Content-Type: ${mime.lookup(fileInfo.ext)}`
 				].join('\r\n') + '\r\n\r\n');
-				console.log(JSON.stringify(start.toString()));
 				const form = new Form({
 					start: start,
 					end: null
@@ -136,12 +135,13 @@ let testFile = (files) => {
 };
 
 Promise.all([
-	// run(fs.createReadStream('./test/out.dump')),
-	// run(fs.createReadStream('./test/out.dump')),
-	testFile(['./mini.iso'])
+	run(fs.createReadStream('./test/out.dump')),
+	run(fs.createReadStream('./test/out.dump')),
+	testFile(['./index.js']).then(() => {
+		return testFile(['./index.js', './index.js']);
+	})
 ]).then(() => {
-
-	/* const server = http.createServer((req, res) => {
+	const server = http.createServer((req, res) => {
 		run(req).then(() => {
 			res.end('cat');
 		});
@@ -163,5 +163,5 @@ Promise.all([
 			console.log('done');
 			server.close();
 		});
-	});*/
+	});
 });
