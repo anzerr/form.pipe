@@ -17,8 +17,20 @@ class File {
 		}
 	}
 
-	push(...arg) {
-		return this.stream.push(...arg);
+	isPaused() {
+		return this.stream.isPaused();
+	}
+
+	once(key, cd) {
+		return this.stream.once(key, cd);
+	}
+
+	write(...arg) {
+		return this.stream.write(...arg);
+	}
+
+	end(...arg) {
+		return this.stream.end(...arg);
 	}
 
 	pipe(s) {

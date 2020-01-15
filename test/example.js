@@ -29,13 +29,14 @@ const toFile = () => {
 http.createServer((req, res) => {
 	console.log('req');
 
-	/* req.pipe(fs.createWriteStream('test.dump')).on('finish', () => {
-		res.end('cat');
-	});*/
-	req.pipe(new FormPipe()).pipe(toFile()).on('finish', () => {
-		console.log('done');
+	req.pipe(fs.createWriteStream('test.dump')).on('finish', () => {
 		res.end('cat');
 	});
+
+	/* req.pipe(new FormPipe()).pipe(toFile()).on('finish', () => {
+		console.log('done');
+		res.end('cat');
+	});*/
 }).listen(1358, () => {
 	console.log('up');
 });

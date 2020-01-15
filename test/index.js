@@ -63,18 +63,21 @@ const run = (stream) => {
 };
 
 let testFile = (files) => {
+	console.log('testFile', files);
 	let p = Promise.resolve(), find = {},
 		key = `WebKitFormBoundary${random()}`;
 	for (const i in files) {
 		((file, n) => {
 			p = p.then(() => {
 				const fileInfo = path.parse(file);
+				const start = Buffer.from([
+					`${n !== 0 ? '\r\n' : ''}------${key}`,
+					`Content-Disposition: form-data; name="bfile"; filename="${fileInfo.base}"`,
+					`Content-Type: ${mime.lookup(fileInfo.ext)}`
+				].join('\r\n') + '\r\n\r\n');
+				console.log(JSON.stringify(start.toString()));
 				const form = new Form({
-					start: Buffer.from([
-						`${n !== 0 ? '\n' : ''}------${key}`,
-						`Content-Disposition: form-data; name="bfile"; filename="${fileInfo.base}"`,
-						`Content-Type: ${mime.lookup(fileInfo.ext)}`
-					].join('\n') + '\n'),
+					start: start,
 					end: null
 				});
 				return new Promise((resolve) => {
@@ -99,7 +102,7 @@ let testFile = (files) => {
 		return new Promise((resolve) => {
 			const form = new Form({
 				start: null,
-				end: Buffer.from(`------${key}--\n`)
+				end: Buffer.from(`\r\n------${key}--\r\n`)
 			});
 			fs.createReadStream('out.tmp').pipe(form).pipe(fs.createWriteStream('out1.tmp')).on('finish', () => {
 				resolve();
@@ -132,14 +135,13 @@ let testFile = (files) => {
 	});
 };
 
-testFile(['./index.js', './index.js']);
-
 Promise.all([
-	run(fs.createReadStream('./test/out.dump')),
-	run(fs.createReadStream('./test/out.dump')),
-	testFile(['./index.js', './index.js'])
+	// run(fs.createReadStream('./test/out.dump')),
+	// run(fs.createReadStream('./test/out.dump')),
+	testFile(['./mini.iso'])
 ]).then(() => {
-	const server = http.createServer((req, res) => {
+
+	/* const server = http.createServer((req, res) => {
 		run(req).then(() => {
 			res.end('cat');
 		});
@@ -161,5 +163,5 @@ Promise.all([
 			console.log('done');
 			server.close();
 		});
-	});
+	});*/
 });

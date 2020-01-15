@@ -14,21 +14,22 @@ class FormPipe extends Transform {
 			if (chunk) {
 				this.parser.push(chunk);
 			}
-			let o = this.parser.process();
-
-			for (let i in o) {
-				((file) => {
-					this.push({
-						name: file.name,
-						filename: file.filename,
-						header: file.header,
-						stream: file.stream
-					});
-				})(o[i]);
-			}
-
-			callback(null);
+			this.parser.process((o) => {
+				for (let i in o) {
+					((file) => {
+						this.push({
+							name: file.name,
+							filename: file.filename,
+							header: file.header,
+							stream: file.stream
+						});
+					})(o[i]);
+				}
+				// console.log('_transform');
+				callback(null);
+			});
 		} catch(err) {
+			console.log(err);
 			callback(err);
 		}
 	}

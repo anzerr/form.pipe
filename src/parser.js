@@ -10,19 +10,24 @@ class Parser {
 		};
 		this.max = Math.pow(2, 18);
 		this.last = null;
+		this.finished = false;
 	}
 
 	start(x) {
 		let i = 0;
 		for (i = 0; i < 6; i++) {
 			if (this._stack.data[x + i] !== 45) {
-				return false;
+				return null;
 			}
 		}
 		while (i < 0xff && this._stack.data[x + i] !== 10) {
 			i++;
 		}
-		return this._stack.data.slice(x, x + (i - 1));
+		if (i === 0xff) {
+			return null;
+		}
+		const offset = this.isBreak(x + i - 1);
+		return this._stack.data.slice(x, x + (i - offset));
 	}
 
 	isBreak(x) {
@@ -81,35 +86,47 @@ class Parser {
 		return false;
 	}
 
-	process() {
-		let i = 0, out = [];
+	process(cd) {
+		if (this.finished) {
+			return cd([]);
+		}
+		let i = 0, out = [], back = [];
 		while (i < this._stack.data.length) {
 			let part = this.start(i);
 			if (part && this.last && this.isEnd(part)) {
-				this.last[1].push(this._stack.data.slice(this.last[0], i - this.isBreak(i - 2)));
-				this.last[1].push(null);
+				back.push(this.last[1].write(this._stack.data.slice(this.last[0], i - this.isBreak(i - 2))));
+				back.push(this.last[1].end(null));
 				this.last = null;
 				i += part.length;
+				this.finished = true;
 				break;
 			}
 			if (part && this.isKey(part)) {
 				let head = this.getHead(i + part.length);
 				if (this.last) {
-					this.last[1].push(this._stack.data.slice(this.last[0], i - this.isBreak(i - 2)));
-					this.last[1].push(null);
+					back.push(this.last[1].write(this._stack.data.slice(this.last[0], i - this.isBreak(i - 2))));
+					back.push(this.last[1].end(null));
 				}
 				i += head[0] + part.length;
 				this.last = [i, new File(part, head[1]), part];
+				back = [];
 				out.push(this.last[1]);
 			}
 			i++;
 		}
 		if (this.last) {
-			this.last[1].push(this._stack.data.slice(this.last[0], i));
+			back.push(this.last[1].write(this._stack.data.slice(this.last[0], i)));
 			this.last[0] = this._stack.data.length - i;
 		}
 		this._stack.data = this._stack.data.slice(i, this._stack.data.length);
-		return out;
+		back = back.reduce((a, b) => a && b, true);
+		if (!back && !out.length && this.last) {
+			this.last[1].once('drain', () => {
+				cd(out);
+			});
+		} else {
+			cd(out);
+		}
 	}
 
 	push(chunk) {
@@ -119,7 +136,9 @@ class Parser {
 			this._stack.data = Buffer.concat([this._stack.data, Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)]);
 		}
 		let data = this._stack.data;
-		this._stack.data = data.slice(Math.max(0, data.length - this.max), data.length);
+		if (data.length > this.max) {
+			this._stack.data = data.slice(Math.max(0, data.length - this.max), data.length);
+		}
 		return this;
 	}
 
