@@ -1,32 +1,40 @@
 {
 	"name": "form.pipe",
 	"version": "1.0.11",
-	"description": "",
-	"main": "index.js",
-	"scripts": {
-		"linter": "eslint src/** index.js",
-		"test": "node test/index.js"
-	},
-	"author": "anzerr",
-	"license": "MIT",
-	"devDependencies": {
-		"mime.util": "git+https://git@github.com/anzerr/mime.util.git",
-		"fs.hash": "git+https://git@github.com/anzerr/fs.hash.git",
-		"eslint-config-basic": "git+https://git@github.com/anzerr/eslintrc.git"
-	},
-	"eslintConfig": {
-		"extends": "eslint-config-basic"
+	"description": "Parse stream of multipart into sub streams per part",
+	"keywords": [
+		"form",
+		"fs",
+		"http",
+		"multipart-formdata",
+		"stream",
+		"util"
+	],
+	"homepage": "https://github.com/anzerr/form.pipe#readme",
+	"bugs": {
+		"url": "https://github.com/anzerr/form.pipe/issues"
 	},
 	"repository": {
 		"type": "git",
 		"url": "git@github.com:anzerr/form.pipe.git"
 	},
+	"license": "MIT",
+	"author": "anzerr",
+	"main": "index.js",
+	"types": "index.d.ts",
+	"scripts": {
+		"linter": "eslint src/** index.js",
+		"test": "node test/index.js"
+	},
+	"eslintConfig": {
+		"extends": "eslint-config-basic"
+	},
+	"devDependencies": {
+		"mime.util": "git+https://git@github.com/anzerr/mime.util.git",
+		"fs.hash": "git+https://git@github.com/anzerr/fs.hash.git",
+		"eslint-config-basic": "git+https://git@github.com/anzerr/eslintrc.git"
+	},
 	"engines": {
 		"node": ">= 0.10.0"
-	},
-	"types": "index.d.ts",
-	"bugs": {
-		"url": "https://github.com/anzerr/form.pipe/issues"
-	},
-	"homepage": "https://github.com/anzerr/form.pipe#readme"
+	}
 }
