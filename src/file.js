@@ -7,11 +7,12 @@ class File {
 		this.key = key;
 		this.header = header;
 		this.stream = new PassThrough();
-		this.name = this.header['content-disposition'].match(/name="([\s-_\.a-zA-Z0-9]+)"/);
+		const content = this.header['content-disposition'].normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+		this.name = content.match(/name="([\s-_\.a-zA-Z0-9]+)"/);
 		if (this.name) {
 			this.name = this.name[1];
 		}
-		this.filename = this.header['content-disposition'].match(/filename="([\s-_\.a-zA-Z0-9]+)"/);
+		this.filename = content.match(/filename="([\s-_\.a-zA-Z0-9]+)"/);
 		if (this.filename) {
 			this.filename = this.filename[1];
 		}
