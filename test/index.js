@@ -9,6 +9,8 @@ const http = require('http'),
 	Form = require('./form.js'),
 	{Transform} = require('stream');
 
+const heartbeat = setInterval(() => {}, 100);
+
 const toHash = () => {
 	let format = new Transform({
 		objectMode: true
@@ -46,17 +48,20 @@ const toFile = () => {
 	});
 };
 
-const run = (stream) => {
+const run = (stream, withFiles) => {
 	return new Promise((resolve) => {
 		let out = [];
 		stream.pipe(new FormPipe()).pipe(toHash()).on('data', (res) => {
-			console.log(res);
-			if (res !== '649a105b013e25921fd83083c747141a5324bd6fba3c6297f6edf402527248a3' && res !== 'ea18d16695e8c5a9a1cd63c34a483cadf6bfc27bcd969b1a77e93b12022e60df') {
-				throw Error(`not valid ${res}`);
+			if (withFiles) {
+				if (res !== '649a105b013e25921fd83083c747141a5324bd6fba3c6297f6edf402527248a3' && res !== 'ea18d16695e8c5a9a1cd63c34a483cadf6bfc27bcd969b1a77e93b12022e60df') {
+					throw Error(`not valid ${res}`);
+				}
 			}
 			out.push(res);
 		}).on('finish', () => {
-			assert.equal(out.length, 2);
+			if (withFiles) {
+				assert.equal(out.length, 2);
+			}
 			resolve();
 		});
 	});
@@ -95,9 +100,8 @@ let testFile = (files) => {
 			});
 		})(files[i], Number(i));
 	}
-	return p.then(() => {
 
-	}).then(() => {
+	return p.then(() => {
 		return new Promise((resolve) => {
 			const form = new Form({
 				start: null,
@@ -134,34 +138,47 @@ let testFile = (files) => {
 	});
 };
 
+const sendFileToServer = (file) => {
+	return new Promise((resolve) => {
+		let a = http.request({method: 'POST', hostname: '127.0.0.1', port: 1358}, (res) => {
+			res.on('data', () => {
+				// console.log('data', res.toString());
+			}).on('end', () => {
+				resolve();
+			});
+		});
+		fs.createReadStream(file).pipe(a);
+	});
+}
+
 Promise.all([
-	run(fs.createReadStream('./test/out.dump')),
-	run(fs.createReadStream('./test/out.dump')),
+	run(fs.createReadStream('./test/dump/out.dump'), true),
+	run(fs.createReadStream('./test/dump/out.dump'), true),
+	run(fs.createReadStream('./test/dump/empty.dump'), false),
+	run(fs.createReadStream('./test/dump/empty1.dump'), false),
+	run(fs.createReadStream('./test/dump/empty2.dump'), false),
 	testFile(['./index.js']).then(() => {
 		return testFile(['./index.js', './index.js']);
 	})
 ]).then(() => {
+	let reqs = 0;
 	const server = http.createServer((req, res) => {
 		run(req).then(() => {
+			reqs++;
 			res.end('cat');
 		});
 	}).listen(1358, () => {
 		let wait = [];
 		for (let i = 0; i < 10; i++) {
-			wait.push(new Promise((resolve) => {
-				let a = http.request({method: 'POST', hostname: '127.0.0.1', port: 1358}, (res) => {
-					res.on('data', () => {
-						// console.log('data', res.toString());
-					}).on('end', () => {
-						resolve();
-					});
-				});
-				fs.createReadStream('./test/out.dump').pipe(a);
-			}));
+			wait.push(sendFileToServer('./test/dump/out.dump'));
+			wait.push(sendFileToServer('./test/dump/empty.dump'));
+			wait.push(sendFileToServer('./test/dump/empty1.dump'));
+			wait.push(sendFileToServer('./test/dump/empty2.dump'));
 		}
 		Promise.all(wait).then(() => {
-			console.log('done');
+			clearInterval(heartbeat);
 			server.close();
+			assert.equal(reqs, 10 * 4);
 		});
 	});
 });

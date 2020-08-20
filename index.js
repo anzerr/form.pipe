@@ -29,12 +29,14 @@ class FormPipe extends Transform {
 				callback(null);
 			});
 		} catch(err) {
-			console.log(err);
 			callback(err);
 		}
 	}
 
 	_flush(callback) {
+		if (this.parser.last) {
+			this.parser.last[1].end(null);
+		}
 		this.parser = null;
 		callback();
 	}
