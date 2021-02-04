@@ -186,7 +186,9 @@ run(fs.createReadStream('./test/dump/out.dump'), toHash).then((hash) => {
 }).then(() => {
 	return run(fs.createReadStream('./test/dump/double.dump'), toHash).then((hash) => {
 		return run(fs.createReadStream('./test/dump/double.dump'), toString).then((str) => {
-			assert.strictEqual(str[0][0], 163);
+			if (str[0][0] !== 163) {
+				console.log(str[0]);
+			}
 			assert.strictEqual(hash[0], '883f91b7bee0d9a8b8d54fe385f125b1d873d38900ecab236e1dae0b97539dc2');
 			console.log('-> ./test/dump/double.dump done');
 		});
@@ -194,7 +196,9 @@ run(fs.createReadStream('./test/dump/out.dump'), toHash).then((hash) => {
 }).then(() => {
 	return run(fs.createReadStream('./test/dump/doublecr.dump'), toHash).then((hash) => {
 		return run(fs.createReadStream('./test/dump/doublecr.dump'), toString).then((str) => {
-			assert.strictEqual(str[0][0], 168);
+			if (str[0][0] !== 168) {
+				console.log(str[0]);
+			}
 			assert.strictEqual(hash[0], '1f460f27eff7c534b9330669bbe27ee05c332a866b220df5916c67ac3ec44235');
 			console.log('-> ./test/dump/doublecr.dump done');
 		});
@@ -202,7 +206,9 @@ run(fs.createReadStream('./test/dump/out.dump'), toHash).then((hash) => {
 }).then(() => {
 	return run(fs.createReadStream('./test/dump/double2.dump'), toHash).then((hash) => {
 		return run(fs.createReadStream('./test/dump/double2.dump'), toString).then((str) => {
-			assert.strictEqual(str[0][0], 162);
+			if (str[0][0] !== 162) {
+				console.log(str[0]);
+			}
 			assert.strictEqual(hash[0], '2c3ea79ec419eddc5e6265c4f1bc40bdbcad19c097807c28cda2de45e641944c');
 			console.log('-> ./test/dump/double2.dump done');
 		});
@@ -210,7 +216,9 @@ run(fs.createReadStream('./test/dump/out.dump'), toHash).then((hash) => {
 }).then(() => {
 	return run(fs.createReadStream('./test/dump/out2.dump'), toHash).then((hash) => {
 		return run(fs.createReadStream('./test/dump/out2.dump'), toString).then((str) => {
-			assert.strictEqual(str[0][0], 14);
+			if (str[0][0] !== 14) {
+				console.log(str[0]);
+			}
 			assert.strictEqual(hash[0], 'c29762f1f21126b969eaa5dbd9e1b783d8b317b5ca8f1bb70f99092bba1391f5');
 			console.log('-> ./test/dump/out2.dump done');
 		});
@@ -218,7 +226,9 @@ run(fs.createReadStream('./test/dump/out.dump'), toHash).then((hash) => {
 }).then(() => {
 	return run(fs.createReadStream('./test/dump/empty.dump'), toHash).then((hash) => {
 		return run(fs.createReadStream('./test/dump/empty.dump'), toString).then((str) => {
-			assert.strictEqual(str[0][0], 0);
+			if (str[0][0] !== 0) {
+				console.log(str[0]);
+			}
 			assert.strictEqual(hash[0], 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855');
 			console.log('-> ./test/dump/empty.dump done');
 		});
@@ -234,7 +244,9 @@ run(fs.createReadStream('./test/dump/out.dump'), toHash).then((hash) => {
 }).then(() => {
 	return run(fs.createReadStream('./test/dump/empty2.dump'), toHash).then((hash) => {
 		return run(fs.createReadStream('./test/dump/empty2.dump'), toString).then((str) => {
-			assert.strictEqual(str[0][0], 0);
+			if (str[0][0] !== 0) {
+				console.log(str[0]);
+			}
 			assert.strictEqual(hash[0], 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855');
 			console.log('-> ./test/dump/empty2.dump done');
 		});
