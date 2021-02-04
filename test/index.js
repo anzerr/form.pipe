@@ -1,3 +1,5 @@
+console.log('start test', process.cwd(), __dirname);
+
 const http = require('http'),
 	fs = require('fs'),
 	crypto = require('crypto'),
@@ -69,11 +71,11 @@ const toFile = () => {
 };
 
 const run = (stream, type) => {
-	return new Promise((resolve) => {
+	return new Promise((resolve, reject) => {
 		let out = [];
 		stream.pipe(new FormPipe()).pipe(type()).on('data', (res) => {
 			out.push(res);
-		}).on('finish', () => {
+		}).on('error', (err) => reject(err)).on('close', () => {
 			resolve(out);
 		});
 	});
