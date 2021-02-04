@@ -74,8 +74,10 @@ const run = (stream, type) => {
 	return new Promise((resolve, reject) => {
 		let out = [];
 		stream.pipe(new FormPipe()).pipe(type()).on('data', (res) => {
+			process.stdout.write('*');
 			out.push(res);
 		}).on('error', (err) => reject(err)).on('close', () => {
+			process.stdout.write('+');
 			resolve(out);
 		});
 	});
