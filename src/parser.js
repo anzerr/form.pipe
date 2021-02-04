@@ -20,18 +20,17 @@ class Parser {
 				return null;
 			}
 		}
-		while (i < 0xff && this._stack.data[x + i] !== 10) {
+		while (i < 0xff && !this.isBreak(x + i - 1) && x + i < this._stack.data.length) {
 			i++;
 		}
 		if (i === 0xff) {
 			return null;
 		}
-		const offset = this.isBreak(x + i - 1);
-		return this._stack.data.slice(x, x + (i - offset));
+		return this._stack.data.slice(x, x + i);
 	}
 
 	isBreak(x) {
-		if (this._stack.data[x] === 13 && this._stack.data[x + 1] === 10) {
+		if (this._stack.data[x + 1] === 13 && this._stack.data[x + 2] === 10) {
 			return 2;
 		}
 		if (this._stack.data[x + 1] === 10) {
@@ -41,17 +40,21 @@ class Parser {
 	}
 
 	getHead(x) {
-		let i = 0, offset = 0;
+		let i = 0, offset = 0, breakPad = 0;
 		while (i < 0xff) {
-			let f = this.isBreak(x + i);
-			if (f && this.isBreak(x + i + f)) {
-				offset = f + this.isBreak(x + i + f);
+			let f = this.isBreak(x + i), g = 0;
+			if (f) {
+				g = this.isBreak(x + i + f)
+			}
+			if (f && g) {
+				breakPad = f;
+				offset = f + g + 1;
 				break;
 			}
 			i++;
 		}
 
-		let out = {}, a = this._stack.data.slice(x, x + i)
+		let out = {}, a = this._stack.data.slice(x, x + i + breakPad)
 			.toString()
 			.split(/\r*\n/);
 		for (let v in a) {
@@ -86,6 +89,13 @@ class Parser {
 		return false;
 	}
 
+	findLastBreak(i) {
+		return Math.max(
+			this.isBreak(i - 3),
+			this.isBreak(i - 2)
+		);
+	}
+
 	process(cd) {
 		if (this.finished) {
 			return cd([]);
@@ -94,7 +104,8 @@ class Parser {
 		while (i < this._stack.data.length) {
 			let part = this.start(i);
 			if (part && this.last && this.isEnd(part)) {
-				back.push(this.last[1].write(this._stack.data.slice(this.last[0], i - this.isBreak(i - 2))));
+				const write = this._stack.data.slice(this.last[0], i - this.findLastBreak(i));
+				back.push(this.last[1].write(write));
 				back.push(this.last[1].end(null));
 				this.last = null;
 				i += part.length;
@@ -104,18 +115,21 @@ class Parser {
 			if (part && this.isKey(part)) {
 				let head = this.getHead(i + part.length);
 				if (this.last) {
-					back.push(this.last[1].write(this._stack.data.slice(this.last[0], i - this.isBreak(i - 2))));
+					const write = this._stack.data.slice(this.last[0], i - this.findLastBreak(i));
+					back.push(this.last[1].write(write));
 					back.push(this.last[1].end(null));
 				}
 				i += head[0] + part.length;
 				this.last = [i, new File(part, head[1]), part];
 				back = [];
 				out.push(this.last[1]);
+			} else {
+				i++;
 			}
-			i++;
 		}
 		if (this.last) {
-			back.push(this.last[1].write(this._stack.data.slice(this.last[0], i)));
+			const write = this._stack.data.slice(this.last[0], i);
+			back.push(this.last[1].write(write));
 			this.last[0] = this._stack.data.length - i;
 		}
 		this._stack.data = this._stack.data.slice(i, this._stack.data.length);

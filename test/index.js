@@ -10,6 +10,7 @@ const http = require('http'),
 	{Transform} = require('stream');
 
 const heartbeat = setInterval(() => {}, 100);
+const random = () => Math.random().toString(36).substring(2);
 
 const toHash = () => {
 	let format = new Transform({
@@ -20,14 +21,32 @@ const toHash = () => {
 		let out = '';
 		file.stream.pipe(h).on('data', (res) => {
 			out += res.toString('hex');
-		}).on('finish', () => {
+		}).on('error', (err) => callback(err)).on('close', () => {
 			cb(null, out);
 		});
 	};
 	return format;
 };
 
-const random = () => Math.random().toString(36).substring(2);
+const toString = () => {
+	let format = new Transform({
+		objectMode: true
+	});
+	format._transform = function(file, enc, cb) {
+		let out = [], done = false;
+		file.stream.on('data', (res) => {
+			if (done) {
+				console.log('what the fuck', out, done);
+			}
+			out.push(res);
+		}).on('error', (err) => callback(err)).on('close', () => {
+			out = Buffer.concat(out);
+			done = true;
+			cb(null, [out.length, out.toString()]);
+		});
+	};
+	return format;
+};
 
 const toFile = () => {
 	return new Transform({
@@ -48,21 +67,13 @@ const toFile = () => {
 	});
 };
 
-const run = (stream, withFiles) => {
+const run = (stream, type) => {
 	return new Promise((resolve) => {
 		let out = [];
-		stream.pipe(new FormPipe()).pipe(toHash()).on('data', (res) => {
-			if (withFiles) {
-				if (res !== '649a105b013e25921fd83083c747141a5324bd6fba3c6297f6edf402527248a3' && res !== 'ea18d16695e8c5a9a1cd63c34a483cadf6bfc27bcd969b1a77e93b12022e60df') {
-					throw Error(`not valid ${res}`);
-				}
-			}
+		stream.pipe(new FormPipe()).pipe(type()).on('data', (res) => {
 			out.push(res);
 		}).on('finish', () => {
-			if (withFiles) {
-				assert.equal(out.length, 2);
-			}
-			resolve();
+			resolve(out);
 		});
 	});
 };
@@ -141,10 +152,11 @@ let testFile = (files) => {
 const sendFileToServer = (file) => {
 	return new Promise((resolve) => {
 		let a = http.request({method: 'POST', hostname: '127.0.0.1', port: 1358}, (res) => {
-			res.on('data', () => {
-				// console.log('data', res.toString());
+			const data = [];
+			res.on('data', (chunk) => {
+				data.push(chunk);
 			}).on('end', () => {
-				resolve();
+				resolve(JSON.parse(Buffer.concat(data).toString()));
 			});
 		});
 		fs.createReadStream(file).pipe(a);
@@ -152,20 +164,68 @@ const sendFileToServer = (file) => {
 }
 
 Promise.all([
-	run(fs.createReadStream('./test/dump/out.dump'), true),
-	run(fs.createReadStream('./test/dump/out.dump'), true),
-	run(fs.createReadStream('./test/dump/empty.dump'), false),
-	run(fs.createReadStream('./test/dump/empty1.dump'), false),
-	run(fs.createReadStream('./test/dump/empty2.dump'), false),
-	testFile(['./index.js']).then(() => {
-		return testFile(['./index.js', './index.js']);
+	run(fs.createReadStream('./test/dump/out.dump'), toHash).then((hash) => {
+		return run(fs.createReadStream('./test/dump/out.dump'), toString).then((str) => {
+			return run(fs.createReadStream('./test/dump/out.dump'), toFile);
+		}).then(() => {
+			assert.strictEqual(hash[0], '649a105b013e25921fd83083c747141a5324bd6fba3c6297f6edf402527248a3');
+			assert.strictEqual(hash[1], 'ea18d16695e8c5a9a1cd63c34a483cadf6bfc27bcd969b1a77e93b12022e60df');
+		});
+	}),
+	run(fs.createReadStream('./test/dump/double.dump'), toHash).then((hash) => {
+		return run(fs.createReadStream('./test/dump/double.dump'), toString).then((str) => {
+			assert.strictEqual(str[0][0], 163);
+			assert.strictEqual(hash[0], '883f91b7bee0d9a8b8d54fe385f125b1d873d38900ecab236e1dae0b97539dc2');
+		});
+	}),
+	run(fs.createReadStream('./test/dump/doublecr.dump'), toHash).then((hash) => {
+		return run(fs.createReadStream('./test/dump/doublecr.dump'), toString).then((str) => {
+			assert.strictEqual(str[0][0], 168);
+			assert.strictEqual(hash[0], '1f460f27eff7c534b9330669bbe27ee05c332a866b220df5916c67ac3ec44235');
+		});
+	}),
+	run(fs.createReadStream('./test/dump/double2.dump'), toHash).then((hash) => {
+		return run(fs.createReadStream('./test/dump/double2.dump'), toString).then((str) => {
+			assert.strictEqual(str[0][0], 162);
+			assert.strictEqual(hash[0], '2c3ea79ec419eddc5e6265c4f1bc40bdbcad19c097807c28cda2de45e641944c');
+		});
+	}),
+	run(fs.createReadStream('./test/dump/out2.dump'), toHash).then((hash) => {
+		return run(fs.createReadStream('./test/dump/out2.dump'), toString).then((str) => {
+			assert.strictEqual(str[0][0], 14);
+			assert.strictEqual(hash[0], 'c29762f1f21126b969eaa5dbd9e1b783d8b317b5ca8f1bb70f99092bba1391f5');
+		});
+	}),
+	run(fs.createReadStream('./test/dump/empty.dump'), toHash).then((hash) => {
+		return run(fs.createReadStream('./test/dump/empty.dump'), toString).then((str) => {
+			assert.strictEqual(str[0][0], 0);
+			assert.strictEqual(hash[0], 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855');
+		});
+	}),
+	run(fs.createReadStream('./test/dump/empty1.dump'), toHash).then((hash) => {
+		return run(fs.createReadStream('./test/dump/empty1.dump'), toString).then((str) => {
+			assert.strictEqual(hash.length, 0);
+			assert.strictEqual(str.length, 0);
+		});
+	}),
+	run(fs.createReadStream('./test/dump/empty2.dump'), toHash).then((hash) => {
+		return run(fs.createReadStream('./test/dump/empty2.dump'), toString).then((str) => {
+			assert.strictEqual(str[0][0], 0);
+			assert.strictEqual(hash[0], 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855');
+		});
 	})
 ]).then(() => {
+	return Promise.all([
+		testFile(['./index.js']).then(() => {
+			return testFile(['./index.js', './index.js']);
+		})
+	]);
+}).then(() => {
 	let reqs = 0;
 	const server = http.createServer((req, res) => {
-		run(req).then(() => {
+		run(req, toHash).then((d) => {
 			reqs++;
-			res.end('cat');
+			res.end(JSON.stringify(d));
 		});
 	}).listen(1358, () => {
 		let wait = [];
@@ -178,7 +238,11 @@ Promise.all([
 		Promise.all(wait).then(() => {
 			clearInterval(heartbeat);
 			server.close();
-			assert.equal(reqs, 10 * 4);
+			assert.equal(reqs, wait.length);
 		});
 	});
+}).catch((err) => {
+	console.log(err);
+	clearInterval(heartbeat);
+	process.exit(1);
 });

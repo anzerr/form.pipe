@@ -1,0 +1,10 @@
+------WebKitFormBoundaryBfeVgPIVR59TqQAw
+Content-Disposition: form-data; name="bfile"; filename="Luigi_8-bit.jpg"
+Content-Type: image/jpeg
+
+------WebKitFormBoundarytest
+Content-Disposition: form-data; name="bfile"; filename="Luigi_8-bit.jpg"
+Content-Type: image/jpeg
+what
+------WebKitFormBoundarytest--
+------WebKitFormBoundaryBfeVgPIVR59TqQAw--
