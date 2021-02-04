@@ -3,9 +3,10 @@ const {PassThrough} = require('stream');
 
 class File {
 
-	constructor(key, header) {
-		this.key = key;
+	constructor(part, header) {
+		this.part = part.toString();
 		this.header = header;
+		this.header.part = this.part;
 		this.stream = new PassThrough();
 		if (this.header['content-disposition']) {
 			const content = this.header['content-disposition'].slice(0, 255).normalize('NFD').replace(/[\u0300-\u036f]/g, '');

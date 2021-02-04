@@ -2,6 +2,7 @@ console.log('start test', process.cwd(), __dirname);
 
 const http = require('http'),
 	fs = require('fs'),
+  	{PassThrough} = require('stream'),
 	crypto = require('crypto'),
 	assert = require('assert'),
 	path = require('path'),
@@ -9,10 +10,10 @@ const http = require('http'),
 	hash = require('fs.hash'),
 	{FormPipe} = require('../index.js'),
 	Form = require('./form.js'),
+	{random, randomBlock} = require('./util.js'),
 	{Transform} = require('stream');
 
 const heartbeat = setInterval(() => {}, 100);
-const random = () => Math.random().toString(36).substring(2);
 const PORT = 10000 + Math.floor(Math.random() * 3000);
 
 const toHash = () => {
@@ -36,11 +37,8 @@ const toString = () => {
 		objectMode: true
 	});
 	format._transform = function(file, enc, cb) {
-		let out = [], done = false;
+		let out = [];
 		file.stream.on('data', (res) => {
-			if (done) {
-				console.log('what the fuck', out, done);
-			}
 			out.push(res);
 		}).on('error', (err) => callback(err)).on('close', () => {
 			out = Buffer.concat(out);
@@ -56,6 +54,7 @@ const toFile = () => {
 		objectMode: true,
 		transform: (file, encoding, callback) => {
 			try {
+				console.log(file.header, file.part);
 				const name = `./0a${random()}.tmp`;
 				console.log('write file', file.filename, name);
 				file.stream.pipe(fs.createWriteStream(name))
@@ -169,19 +168,68 @@ const sendFileToServer = (file) => {
 	});
 }
 
+const runBuffer = (data, type) => {
+	const key = `WebKitFormBoundary${random()}`;
+	const form = new Form({
+        start: Buffer.from([
+            `------${key}`,
+            `Content-Disposition: form-data; name="bfile"; filename="file.test"`,
+            `Content-Type: stuff`
+        ].join('\r\n') + '\r\n\r\n'),
+        end: Buffer.from(`\r\n------${key}--\r\n`)
+	});
+	let total = 0;
+	const pass = new PassThrough();
+	const think = setInterval(() => {
+		const size = Math.floor(Math.random() * 16000);
+		const block = data.slice(0, size);
+		data = data.slice(size);
+		if (!data) {
+			clearTimeout(think);
+			total += block.length;
+			console.log('sent', total);
+			pass.end(block);
+		} else {
+			total += block.length;
+			pass.write(block);
+		}
+	}, 10);
+	return run(pass.pipe(form), type)
+}
+
 const timeout = setTimeout(() => {
 	console.log(new Error('test hit timeout'));
 	process.exit(1);
-}, 1000 * 10);
+}, 1000 * 60);
 
 let totalReqs = 0;
-run(fs.createReadStream('./test/dump/out.dump'), toHash).then((hash) => {
-	return run(fs.createReadStream('./test/dump/out.dump'), toString).then((str) => {
-		//return run(fs.createReadStream('./test/dump/out.dump'), toFile);
+Promise.resolve().then(() =>  {
+	const runSize = (s) => {
+		const block = randomBlock(s);
+		return runBuffer(block, toString).then((res) => {
+			console.log('runBuffer', s, res[0][0], block.length, res[0][1] === block);
+		});
+	};
+	return runSize(1000).then(() => {
+		return runSize(1000 * 10);
 	}).then(() => {
-		assert.strictEqual(hash[0], '649a105b013e25921fd83083c747141a5324bd6fba3c6297f6edf402527248a3');
-		assert.strictEqual(hash[1], 'ea18d16695e8c5a9a1cd63c34a483cadf6bfc27bcd969b1a77e93b12022e60df');
-		console.log('-> ./test/dump/out.dump done');
+		return runSize(1000 * 50);
+	}).then(() => {
+		return runSize(1000 * 100);
+	}).then(() => {
+		return runSize(1000 * 200);
+	}).then(() => {
+		return runSize(1000 * 500);
+	});
+}).then(() => {
+	return run(fs.createReadStream('./test/dump/out.dump'), toHash).then((hash) => {
+		return run(fs.createReadStream('./test/dump/out.dump'), toString).then((str) => {
+			//return run(fs.createReadStream('./test/dump/out.dump'), toFile);
+		}).then(() => {
+			assert.strictEqual(hash[0], '649a105b013e25921fd83083c747141a5324bd6fba3c6297f6edf402527248a3');
+			assert.strictEqual(hash[1], 'ea18d16695e8c5a9a1cd63c34a483cadf6bfc27bcd969b1a77e93b12022e60df');
+			console.log('-> ./test/dump/out.dump done');
+		});
 	});
 }).then(() => {
 	return run(fs.createReadStream('./test/dump/double.dump'), toHash).then((hash) => {
