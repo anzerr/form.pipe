@@ -44,7 +44,7 @@ class Parser {
 		while (i < 0xff) {
 			let f = this.isBreak(x + i), g = 0;
 			if (f) {
-				g = this.isBreak(x + i + f)
+				g = this.isBreak(x + i + f);
 			}
 			if (f && g) {
 				breakPad = f;
