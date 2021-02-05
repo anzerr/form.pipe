@@ -2,7 +2,7 @@ console.log('start test', process.cwd(), __dirname);
 
 const http = require('http'),
 	fs = require('fs'),
-  	{PassThrough} = require('stream'),
+	promise = require('promise.util'),
 	crypto = require('crypto'),
 	assert = require('assert'),
 	path = require('path'),
@@ -168,6 +168,22 @@ const sendFileToServer = (file) => {
 	});
 }
 
+class SlowPassThrough extends Transform {
+	
+	constructor() {
+	  super({highWaterMark: 1, writableHighWaterMark: 1, readableHighWaterMark: 1});
+	}
+
+	_transform(res, encoding, callback) {
+		callback(null, res);
+	}
+
+	_flush(callback) {
+		callback();
+	}
+
+}
+
 const runBuffer = (data, type) => {
 	const key = `WebKitFormBoundary${random()}`;
 	const form = new Form({
@@ -179,9 +195,11 @@ const runBuffer = (data, type) => {
         end: Buffer.from(`\r\n------${key}--\r\n`)
 	});
 	let total = 0;
-	const pass = new PassThrough();
+
+	const scale = 500;
+	const pass = new SlowPassThrough();
 	const think = setInterval(() => {
-		const size = Math.floor(Math.random() * 16000);
+		const size = (data.length < scale * 2) ? Math.max(4, data.length - 4) : Math.floor(Math.random() * scale);
 		const block = data.slice(0, size);
 		data = data.slice(size);
 		if (!data) {
@@ -193,161 +211,195 @@ const runBuffer = (data, type) => {
 			total += block.length;
 			pass.write(block);
 		}
-	}, 10);
+	}, 1);
 	return run(pass.pipe(form), type)
+}
+
+const runFile = (file, type) => {
+	const key = `WebKitFormBoundary${random()}`;
+	const form = new Form({
+        start: Buffer.from([
+            `------${key}`,
+            `Content-Disposition: form-data; name="bfile"; filename="file.test"`,
+            `Content-Type: stuff`
+        ].join('\r\n') + '\r\n\r\n'),
+        end: Buffer.from(`\r\n------${key}--\r\n`)
+	});
+
+	const name = `./0a${random()}.tmp`;
+	return new Promise((resolve, reject) => {
+		fs.createReadStream(file)
+			.pipe(form)
+			.pipe(fs.createWriteStream(name))
+			.on('error', (err) => reject(err))
+			.on('close', () => {
+				resolve(name);
+			});
+	})
+	//return run(fs.createReadStream(file).pipe(form), type)
 }
 
 const timeout = setTimeout(() => {
 	console.log(new Error('test hit timeout'));
 	process.exit(1);
-}, 1000 * 60);
+}, 1000 * 60 * 5);
 
-let totalReqs = 0;
-Promise.resolve().then(() =>  {
-	const runSize = (s) => {
-		const block = randomBlock(s);
-		return runBuffer(block, toString).then((res) => {
-			console.log('runBuffer', s, res[0][0], block.length, res[0][1] === block);
-		});
-	};
-	return runSize(1000).then(() => {
-		return runSize(1000 * 10);
-	}).then(() => {
-		return runSize(1000 * 50);
-	}).then(() => {
-		return runSize(1000 * 100);
-	}).then(() => {
-		return runSize(1000 * 200);
-	}).then(() => {
-		return runSize(1000 * 500);
-	});
-}).then(() => {
-	return run(fs.createReadStream('./test/dump/out.dump'), toHash).then((hash) => {
-		return run(fs.createReadStream('./test/dump/out.dump'), toString).then((str) => {
-			//return run(fs.createReadStream('./test/dump/out.dump'), toFile);
-		}).then(() => {
-			assert.strictEqual(hash[0], '649a105b013e25921fd83083c747141a5324bd6fba3c6297f6edf402527248a3');
-			assert.strictEqual(hash[1], 'ea18d16695e8c5a9a1cd63c34a483cadf6bfc27bcd969b1a77e93b12022e60df');
-			console.log('-> ./test/dump/out.dump done');
-		});
-	});
-}).then(() => {
-	return run(fs.createReadStream('./test/dump/double.dump'), toHash).then((hash) => {
-		return run(fs.createReadStream('./test/dump/double.dump'), toString).then((str) => {
-			if (str[0][0] !== 163) {
-				console.log(str[0]);
-			}
-			assert.strictEqual(hash[0], '883f91b7bee0d9a8b8d54fe385f125b1d873d38900ecab236e1dae0b97539dc2');
-			console.log('-> ./test/dump/double.dump done');
-		});
-	});
-}).then(() => {
-	return run(fs.createReadStream('./test/dump/doublecr.dump'), toHash).then((hash) => {
-		return run(fs.createReadStream('./test/dump/doublecr.dump'), toString).then((str) => {
-			if (str[0][0] !== 168) {
-				console.log(str[0]);
-			}
-			assert.strictEqual(hash[0], '1f460f27eff7c534b9330669bbe27ee05c332a866b220df5916c67ac3ec44235');
-			console.log('-> ./test/dump/doublecr.dump done');
-		});
-	});
-}).then(() => {
-	return run(fs.createReadStream('./test/dump/double2.dump'), toHash).then((hash) => {
-		return run(fs.createReadStream('./test/dump/double2.dump'), toString).then((str) => {
-			if (str[0][0] !== 162) {
-				console.log(str[0]);
-			}
-			assert.strictEqual(hash[0], '2c3ea79ec419eddc5e6265c4f1bc40bdbcad19c097807c28cda2de45e641944c');
-			console.log('-> ./test/dump/double2.dump done');
-		});
-	});
-}).then(() => {
-	return run(fs.createReadStream('./test/dump/out2.dump'), toHash).then((hash) => {
-		return run(fs.createReadStream('./test/dump/out2.dump'), toString).then((str) => {
-			if (str[0][0] !== 14) {
-				console.log(str[0]);
-			}
-			assert.strictEqual(hash[0], 'c29762f1f21126b969eaa5dbd9e1b783d8b317b5ca8f1bb70f99092bba1391f5');
-			console.log('-> ./test/dump/out2.dump done');
-		});
-	});
-}).then(() => {
-	return run(fs.createReadStream('./test/dump/empty.dump'), toHash).then((hash) => {
-		return run(fs.createReadStream('./test/dump/empty.dump'), toString).then((str) => {
-			if (str[0][0] !== 0) {
-				console.log(str[0]);
-			}
-			assert.strictEqual(hash[0], 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855');
-			console.log('-> ./test/dump/empty.dump done');
-		});
-	});
-}).then(() => {
-	return run(fs.createReadStream('./test/dump/empty1.dump'), toHash).then((hash) => {
-		return run(fs.createReadStream('./test/dump/empty1.dump'), toString).then((str) => {
-			assert.strictEqual(hash.length, 0);
-			assert.strictEqual(str.length, 0);
-			console.log('-> ./test/dump/empty1.dump done');
-		});
-	});
-}).then(() => {
-	return run(fs.createReadStream('./test/dump/empty2.dump'), toHash).then((hash) => {
-		return run(fs.createReadStream('./test/dump/empty2.dump'), toString).then((str) => {
-			if (str[0][0] !== 0) {
-				console.log(str[0]);
-			}
-			assert.strictEqual(hash[0], 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855');
-			console.log('-> ./test/dump/empty2.dump done');
-		});
-	});
-}).then(() => {
-	return testFile(['./index.js']).then(() => {
-		return testFile(['./index.js', './index.js']);
-	});
-}).then(() => {
-	console.log('-> testFile "./index.js" done');
-	return new Promise((resolve) => {
-		const server = http.createServer((req, res) => {
-			run(req, toHash).then((d) => {
-				totalReqs++;
-				console.log('request handled');
-				res.end(JSON.stringify(d));
+let totalReqs = 0, code = 0;
+promise.measure(() => {
+	return Promise.resolve().then(() =>  {
+		const runSize = (s) => {
+			const block = randomBlock(s);
+			return runBuffer(block, toString).then((res) => {
+				console.log('runBuffer', {
+					size: s,
+					sentBlockSize: block.length,
+					receivedSize: [res[0][0], res[0][1].length],
+					receivedMatch: (res[0][1] === block)
+				});
 			});
-		}).listen(PORT, () => {
-			resolve(server);
+		};
+		return runSize(1000).then(() => {
+			return runSize(1000 * 10);
+		}).then(() => {
+			return runSize(1000 * 50);
+		}).then(() => {
+			return runSize(1000 * 100);
+		}).then(() => {
+			return runSize(1000 * 200);
+		}).then(() => {
+			return runSize(1000 * 500);
 		});
-	});
-}).then((server) => {
-	console.log('-> server up');
-	let wait = [];
-	for (let i = 0; i < 10; i++) {
-		wait.push(sendFileToServer('./test/dump/out.dump').then((hash) => {
-			assert.strictEqual(hash[0], '649a105b013e25921fd83083c747141a5324bd6fba3c6297f6edf402527248a3');
-			assert.strictEqual(hash[1], 'ea18d16695e8c5a9a1cd63c34a483cadf6bfc27bcd969b1a77e93b12022e60df');
-		}));
-		wait.push(sendFileToServer('./test/dump/empty.dump').then((hash) => {
-			assert.strictEqual(hash[0], 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855');
-		}));
-		wait.push(sendFileToServer('./test/dump/empty1.dump').then((hash) => {
-			assert.strictEqual(hash.length, 0);
-		}));
-		wait.push(sendFileToServer('./test/dump/empty2.dump').then((hash) => {
-			assert.strictEqual(hash[0], 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855');
-		}));
-	}
-	return Promise.all(wait).then(() => {
-		console.log('-> all req sent');
+	}).then(() => {
+		return run(fs.createReadStream('./test/dump/out.dump'), toHash).then((hash) => {
+			return run(fs.createReadStream('./test/dump/out.dump'), toString).then((str) => {
+				return run(fs.createReadStream('./test/dump/out.dump'), toFile);
+			}).then(() => {
+				assert.strictEqual(hash[0], '649a105b013e25921fd83083c747141a5324bd6fba3c6297f6edf402527248a3');
+				assert.strictEqual(hash[1], 'ea18d16695e8c5a9a1cd63c34a483cadf6bfc27bcd969b1a77e93b12022e60df');
+				console.log('-> ./test/dump/out.dump done');
+			});
+		});
+	}).then(() => {
+		return run(fs.createReadStream('./test/dump/double.dump'), toHash).then((hash) => {
+			return run(fs.createReadStream('./test/dump/double.dump'), toString).then((str) => {
+				if (str[0][0] !== 163) {
+					console.log(str[0]);
+				}
+				assert.strictEqual(hash[0], '883f91b7bee0d9a8b8d54fe385f125b1d873d38900ecab236e1dae0b97539dc2');
+				console.log('-> ./test/dump/double.dump done');
+			});
+		});
+	}).then(() => {
+		return run(fs.createReadStream('./test/dump/doublecr.dump'), toHash).then((hash) => {
+			return run(fs.createReadStream('./test/dump/doublecr.dump'), toString).then((str) => {
+				if (str[0][0] !== 168) {
+					console.log(str[0]);
+				}
+				assert.strictEqual(hash[0], '1f460f27eff7c534b9330669bbe27ee05c332a866b220df5916c67ac3ec44235');
+				console.log('-> ./test/dump/doublecr.dump done');
+			});
+		});
+	}).then(() => {
+		return run(fs.createReadStream('./test/dump/double2.dump'), toHash).then((hash) => {
+			return run(fs.createReadStream('./test/dump/double2.dump'), toString).then((str) => {
+				if (str[0][0] !== 162) {
+					console.log(str[0]);
+				}
+				assert.strictEqual(hash[0], '2c3ea79ec419eddc5e6265c4f1bc40bdbcad19c097807c28cda2de45e641944c');
+				console.log('-> ./test/dump/double2.dump done');
+			});
+		});
+	}).then(() => {
+		return run(fs.createReadStream('./test/dump/out2.dump'), toHash).then((hash) => {
+			return run(fs.createReadStream('./test/dump/out2.dump'), toString).then((str) => {
+				if (str[0][0] !== 14) {
+					console.log(str[0]);
+				}
+				assert.strictEqual(hash[0], 'c29762f1f21126b969eaa5dbd9e1b783d8b317b5ca8f1bb70f99092bba1391f5');
+				console.log('-> ./test/dump/out2.dump done');
+			});
+		});
+	}).then(() => {
+		return run(fs.createReadStream('./test/dump/empty.dump'), toHash).then((hash) => {
+			return run(fs.createReadStream('./test/dump/empty.dump'), toString).then((str) => {
+				if (str[0][0] !== 0) {
+					console.log(str[0]);
+				}
+				assert.strictEqual(hash[0], 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855');
+				console.log('-> ./test/dump/empty.dump done');
+			});
+		});
+	}).then(() => {
+		return run(fs.createReadStream('./test/dump/empty1.dump'), toHash).then((hash) => {
+			return run(fs.createReadStream('./test/dump/empty1.dump'), toString).then((str) => {
+				assert.strictEqual(hash.length, 0);
+				assert.strictEqual(str.length, 0);
+				console.log('-> ./test/dump/empty1.dump done');
+			});
+		});
+	}).then(() => {
+		return run(fs.createReadStream('./test/dump/empty2.dump'), toHash).then((hash) => {
+			return run(fs.createReadStream('./test/dump/empty2.dump'), toString).then((str) => {
+				if (str[0][0] !== 0) {
+					console.log(str[0]);
+				}
+				assert.strictEqual(hash[0], 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855');
+				console.log('-> ./test/dump/empty2.dump done');
+			});
+		});
+	}).then(() => {
+		return testFile(['./index.js']).then(() => {
+			return testFile(['./index.js', './index.js']);
+		});
+	}).then(() => {
+		console.log('-> testFile "./index.js" done');
+		return new Promise((resolve) => {
+			const server = http.createServer((req, res) => {
+				run(req, toHash).then((d) => {
+					totalReqs++;
+					console.log('request handled');
+					res.end(JSON.stringify(d));
+				});
+			}).listen(PORT, () => {
+				resolve(server);
+			});
+		});
+	}).then((server) => {
+		console.log('-> server up');
+		let wait = [];
+		for (let i = 0; i < 10; i++) {
+			wait.push(sendFileToServer('./test/dump/out.dump').then((hash) => {
+				assert.strictEqual(hash[0], '649a105b013e25921fd83083c747141a5324bd6fba3c6297f6edf402527248a3');
+				assert.strictEqual(hash[1], 'ea18d16695e8c5a9a1cd63c34a483cadf6bfc27bcd969b1a77e93b12022e60df');
+			}));
+			wait.push(sendFileToServer('./test/dump/empty.dump').then((hash) => {
+				assert.strictEqual(hash[0], 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855');
+			}));
+			wait.push(sendFileToServer('./test/dump/empty1.dump').then((hash) => {
+				assert.strictEqual(hash.length, 0);
+			}));
+			wait.push(sendFileToServer('./test/dump/empty2.dump').then((hash) => {
+				assert.strictEqual(hash[0], 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855');
+			}));
+		}
+		return Promise.all(wait).then(() => {
+			console.log('-> all req sent');
+			clearInterval(heartbeat);
+			clearTimeout(timeout);
+			server.close();
+			assert.strictEqual(totalReqs, wait.length);
+		});
+	}).then(() => {
+		console.log('-> done test valid');
+		code = 0;
+	}).catch((err) => {
+		console.log(err);
+		console.log('-> invalid tets');
 		clearInterval(heartbeat);
 		clearTimeout(timeout);
-		server.close();
-		assert.strictEqual(totalReqs, wait.length);
+		code = 1;
 	});
-}).then(() => {
-	console.log('-> done test valid');
-	process.exit(0);
-}).catch((err) => {
-	console.log(err);
-	console.log('-> invalid tets');
-	clearInterval(heartbeat);
-	clearTimeout(timeout);
-	process.exit(1);
+}).then((res) => {
+	console.log(`test run in "${Math.round(res / 1e6)}"ms`);
+	process.exit(code);
 });

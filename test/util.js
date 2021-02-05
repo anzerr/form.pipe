@@ -7,6 +7,6 @@ module.exports = {
         return key.random({char: ALPHA_NUM, length});
     },
     randomBlock: (length) => {
-        return key.random({char: ALPHA_NUM + '\n\r\t ', length});
+        return key.random({char: ALPHA_NUM + '\n\r\t !"#$%&\'()*+,-./:;<?@[\\]^_`{|}~', length});
     }
 }

@@ -8,6 +8,7 @@ class Parser {
 			data: Buffer.alloc(0),
 			start: null
 		};
+		this.highWaterMark = Math.pow(2, 14);
 		this.max = Math.pow(2, 18);
 		this.last = null;
 		this.finished = false;
@@ -20,7 +21,7 @@ class Parser {
 				return null;
 			}
 		}
-		while (i < 0xff && !this.isBreak(x + i - 1) && x + i < this._stack.data.length) {
+		while (i < 0xff && x + i < this._stack.data.length && !this.isBreak(x + i - 1)) {
 			i++;
 		}
 		if (i === 0xff) {
@@ -30,11 +31,11 @@ class Parser {
 	}
 
 	isBreak(x) {
-		if (this._stack.data[x + 1] === 13 && this._stack.data[x + 2] === 10) {
-			return 2;
-		}
 		if (this._stack.data[x + 1] === 10) {
 			return 1;
+		}
+		if (this._stack.data[x + 1] === 13 && this._stack.data[x + 2] === 10) {
+			return 2;
 		}
 		return 0;
 	}
@@ -96,8 +97,8 @@ class Parser {
 		);
 	}
 
-	process(cd) {
-		if (this.finished) {
+	process(cd, force) {
+		if (this.finished || (this._stack.data.length < this.highWaterMark && !force)) {
 			return cd([]);
 		}
 		let i = 0, out = [], back = [];
@@ -113,12 +114,12 @@ class Parser {
 				break;
 			}
 			if (part && this.isKey(part)) {
-				let head = this.getHead(i + part.length);
 				if (this.last) {
 					const write = this._stack.data.slice(this.last[0], i - this.findLastBreak(i));
 					back.push(this.last[1].write(write));
 					back.push(this.last[1].end(null));
 				}
+				let head = this.getHead(i + part.length);
 				i += head[0] + part.length;
 				this.last = [i, new File(part, head[1]), part];
 				back = [];
@@ -127,12 +128,13 @@ class Parser {
 				i++;
 			}
 		}
+		const maxI = force? i : Math.min(Math.floor(this.highWaterMark * 0.8), i);
 		if (this.last) {
-			const write = this._stack.data.slice(this.last[0], i);
+			const write = this._stack.data.slice(this.last[0], maxI);
 			back.push(this.last[1].write(write));
-			this.last[0] = this._stack.data.length - i;
+			this.last[0] = 0;
 		}
-		this._stack.data = this._stack.data.slice(i, this._stack.data.length);
+		this._stack.data = this._stack.data.slice(maxI, this._stack.data.length);
 		back = back.reduce((a, b) => a && b, true);
 		if (!back && !out.length && this.last) {
 			this.last[1].once('drain', () => {

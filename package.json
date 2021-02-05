@@ -32,6 +32,7 @@
 	"devDependencies": {
 		"mime.util": "git+https://git@github.com/anzerr/mime.util.git",
 		"fs.hash": "git+https://git@github.com/anzerr/fs.hash.git",
+		"promise.util": "git+https://git@github.com/anzerr/promise.util.git",
 		"unique.util": "git+https://git@github.com/anzerr/unique.util.git",
 		"eslint-config-basic": "git+https://git@github.com/anzerr/eslintrc.git"
 	},
