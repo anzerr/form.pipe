@@ -226,7 +226,7 @@ const runFile = (file, type) => {
         end: Buffer.from(`\r\n------${key}--\r\n`)
 	});
 
-	const name = `./0a${random()}.tmp`;
+	/*const name = `./0a${random()}.tmp`;
 	return new Promise((resolve, reject) => {
 		fs.createReadStream(file)
 			.pipe(form)
@@ -235,8 +235,8 @@ const runFile = (file, type) => {
 			.on('close', () => {
 				resolve(name);
 			});
-	})
-	//return run(fs.createReadStream(file).pipe(form), type)
+	})*/
+	return run(fs.createReadStream(file).pipe(form), type)
 }
 
 const timeout = setTimeout(() => {
@@ -246,7 +246,7 @@ const timeout = setTimeout(() => {
 
 let totalReqs = 0, code = 0;
 promise.measure(() => {
-	return Promise.resolve().then(() =>  {
+	return Promise.resolve().then(() => {
 		const runSize = (s) => {
 			const block = randomBlock(s);
 			return runBuffer(block, toString).then((res) => {
@@ -256,6 +256,9 @@ promise.measure(() => {
 					receivedSize: [res[0][0], res[0][1].length],
 					receivedMatch: (res[0][1] === block)
 				});
+				assert.strictEqual(res[0][0], res[0][1].length);
+				assert.strictEqual(res[0][0], block.length);
+				assert.strictEqual(res[0][1], block);
 			});
 		};
 		return runSize(1000).then(() => {

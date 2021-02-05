@@ -128,13 +128,17 @@ class Parser {
 				i++;
 			}
 		}
-		const maxI = force? i : Math.min(Math.floor(this.highWaterMark * 0.8), i);
+		const maxI = force? i : Math.min(this._stack.data.length - 0xff, i);
 		if (this.last) {
 			const write = this._stack.data.slice(this.last[0], maxI);
 			back.push(this.last[1].write(write));
 			this.last[0] = 0;
 		}
-		this._stack.data = this._stack.data.slice(maxI, this._stack.data.length);
+		if (maxI == this._stack.data.length) {
+			this._stack.data = Buffer.alloc(0);
+		} else {
+			this._stack.data = this._stack.data.slice(maxI, this._stack.data.length);
+		}
 		back = back.reduce((a, b) => a && b, true);
 		if (!back && !out.length && this.last) {
 			this.last[1].once('drain', () => {
