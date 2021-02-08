@@ -1,6 +1,6 @@
 {
 	"name": "form.pipe",
-	"version": "1.0.26",
+	"version": "1.0.27",
 	"description": "Parse stream of multipart into sub streams per part",
 	"keywords": [
 		"form",
