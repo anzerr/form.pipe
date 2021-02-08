@@ -128,13 +128,13 @@ class Parser {
 				i++;
 			}
 		}
-		const maxI = force? i : Math.min(this._stack.data.length - 0xff, i);
+		const maxI = force ? i : Math.min(this._stack.data.length - 0xff, i);
 		if (this.last) {
 			const write = this._stack.data.slice(this.last[0], maxI);
 			back.push(this.last[1].write(write));
 			this.last[0] = 0;
 		}
-		if (maxI == this._stack.data.length) {
+		if (maxI === this._stack.data.length) {
 			this._stack.data = Buffer.alloc(0);
 		} else {
 			this._stack.data = this._stack.data.slice(maxI, this._stack.data.length);
