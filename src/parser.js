@@ -42,7 +42,7 @@ class Parser {
 
 	getHead(x) {
 		let i = 0, offset = 0, breakPad = 0;
-		while (i < 0xff) {
+		while (i < 0xfff) {
 			let f = this.isBreak(x + i), g = 0;
 			if (f) {
 				g = this.isBreak(x + i + f);

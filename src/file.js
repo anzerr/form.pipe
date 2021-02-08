@@ -10,11 +10,11 @@ class File {
 		this.stream = new PassThrough();
 		if (this.header['content-disposition']) {
 			const content = this.header['content-disposition'].slice(0, 255).normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-			this.name = content.match(/name="([\s-_\.a-zA-Z0-9]+)"/);
+			this.name = content.match(/name="(.+)"/);
 			if (this.name) {
 				this.name = this.name[1];
 			}
-			this.filename = content.match(/filename="([\s-_\.a-zA-Z0-9]+)"/);
+			this.filename = content.match(/filename="(.+)"/);
 			if (this.filename) {
 				this.filename = this.filename[1];
 			}
