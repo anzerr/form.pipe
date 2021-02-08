@@ -1,6 +1,13 @@
 
 const {Transform} = require('stream');
 
+const split = (data, push) => {
+	const len = data.length,
+		size = Math.floor(len / 2);
+	push(data.slice(0, size));
+	push(data.slice(size, len));
+}
+
 class Pad extends Transform {
 
 	constructor(config) {
@@ -10,26 +17,22 @@ class Pad extends Transform {
 
 	_transform(res, encoding, callback) {
 		if (this.config.start) {
-			const len = this.config.start.length,
-				size = Math.floor(len / 2);
-			this.push(this.config.start.slice(0, size)); // simulate the stream getting sliced at the start
-			this.push(this.config.start.slice(size, len));
+			split(this.config.start, (d) => this.push(d));
 			this.push(res);
 			this.config.start = null;
 			callback(null, null);
 		} else {
 			callback(null, res);
 		}
-		/*callback(null, this.config.start ? Buffer.concat([this.config.start, res]) : res);
-		this.config.start = null;*/
 	}
 
 	_flush(callback) {
+		if (this.config.start) {
+			split(this.config.start, (d) => this.push(d));
+			this.config.start = null;
+		}
 		if (this.config.end) {
-			const len = this.config.end.length,
-				size = Math.floor(len / 2);
-			this.push(this.config.end.slice(0, size)); // simulate the stream getting sliced at the end
-			this.push(this.config.end.slice(size, len));
+			split(this.config.end, (d) => this.push(d));
 		} else {
 			this.push(null);
 		}

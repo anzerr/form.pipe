@@ -16,6 +16,14 @@ const http = require('http'),
 const heartbeat = setInterval(() => {}, 100);
 const PORT = 10000 + Math.floor(Math.random() * 3000);
 
+const validHeader = (file) => {
+	//console.log(file.header);
+	assert.strictEqual(typeof file.header['content-disposition'], 'string');
+	assert.notStrictEqual(file.header['content-disposition'].match('form-data;'), null);
+	assert.strictEqual(typeof file.header['content-type'], 'string');
+	assert.strictEqual(typeof file.header['part'], 'string');
+}
+
 const toHash = () => {
 	let format = new Transform({
 		objectMode: true
@@ -23,6 +31,7 @@ const toHash = () => {
 	format._transform = function(file, enc, cb) {
 		const h = crypto.createHash('sha256');
 		let out = '';
+		validHeader(file);
 		file.stream.pipe(h).on('data', (res) => {
 			out += res.toString('hex');
 		}).on('error', (err) => callback(err)).on('close', () => {
@@ -38,6 +47,7 @@ const toString = () => {
 	});
 	format._transform = function(file, enc, cb) {
 		let out = [];
+		validHeader(file);
 		file.stream.on('data', (res) => {
 			out.push(res);
 		}).on('error', (err) => callback(err)).on('close', () => {
@@ -54,7 +64,7 @@ const toFile = () => {
 		objectMode: true,
 		transform: (file, encoding, callback) => {
 			try {
-				console.log(file.header, file.part);
+				validHeader(file);
 				const name = `./0a${random()}.tmp`;
 				console.log('write file', file.filename, name);
 				file.stream.pipe(fs.createWriteStream(name))
@@ -247,6 +257,11 @@ const timeout = setTimeout(() => {
 let totalReqs = 0, code = 0;
 promise.measure(() => {
 	return Promise.resolve().then(() => {
+		return runBuffer('', toString).then((res) => {
+			assert.strictEqual(res[0][0], 0);
+			assert.strictEqual(res[0][1], '');
+		});
+	}).then(() => {
 		const runSize = (s) => {
 			const block = randomBlock(s);
 			return runBuffer(block, toString).then((res) => {
