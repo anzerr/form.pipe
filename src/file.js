@@ -9,7 +9,7 @@ class File {
 		this.header.part = this.part;
 		this.stream = new PassThrough();
 		if (this.header['content-disposition']) {
-			const content = this.header['content-disposition'].slice(0, 255).normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+			const content = this.header['content-disposition'].slice(0, 0xfff).normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 			this.name = content.match(/name="(.+)"/);
 			if (this.name) {
 				this.name = this.name[1];
