@@ -41,9 +41,20 @@ class FormPipe extends Transform {
 			if (this.parser.last) {
 				this.parser.last[1].end(null);
 			}
-			this.parser = null;
+			if (this.parser) {
+				this.parser.destroy();
+				this.parser = null;
+			}
 			callback();
 		}, true);
+	}
+
+	_destroy(err, callback) {
+		if (this.parser) {
+			this.parser.destroy();
+			this.parser = null;
+		}
+		callback();
 	}
 
 }

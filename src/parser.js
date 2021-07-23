@@ -162,6 +162,12 @@ class Parser {
 		return this;
 	}
 
+	destroy() {
+		this.last = null;
+		this._stack = null;
+		this.finished = true;
+	}
+
 }
 
 module.exports = Parser;

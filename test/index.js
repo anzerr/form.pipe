@@ -408,6 +408,16 @@ promise.measure(() => {
 			assert.strictEqual(totalReqs, wait.length);
 		});
 	}).then(() => {
+		const form = new FormPipe();
+		const parser = form.parser;
+		form.write('test');
+		assert.strictEqual(parser._stack.data.toString(), 'test');
+		form.destroy();
+		assert.strictEqual(form.parser, null);
+		assert.strictEqual(parser._stack, null);
+		assert.strictEqual(parser.last, null);
+		assert.strictEqual(parser.finished, true);
+	}).then(() => {
 		console.log('-> done test valid');
 		code = 0;
 	}).catch((err) => {
