@@ -23,18 +23,13 @@
 	"main": "index.js",
 	"types": "index.d.ts",
 	"scripts": {
-		"linter": "eslint src/** index.js",
 		"test": "node test/index.js"
-	},
-	"eslintConfig": {
-		"extends": "eslint-config-basic"
 	},
 	"devDependencies": {
 		"mime.util": "git+https://git@github.com/anzerr/mime.util.git",
 		"fs.hash": "git+https://git@github.com/anzerr/fs.hash.git",
 		"promise.util": "git+https://git@github.com/anzerr/promise.util.git",
-		"unique.util": "git+https://git@github.com/anzerr/unique.util.git",
-		"eslint-config-basic": "git+https://git@github.com/anzerr/eslintrc.git"
+		"unique.util": "git+https://git@github.com/anzerr/unique.util.git"
 	},
 	"engines": {
 		"node": ">= 0.10.0"
